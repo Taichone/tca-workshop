@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		52867B9B2BEFA76F00441ACE /* RepositoryListFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 52867B9A2BEFA76F00441ACE /* RepositoryListFeature */; };
 		C7A7DB6D2AAD4C8D0029DCBA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7A7DB682AAD4C8D0029DCBA /* Assets.xcassets */; };
 		C7A7DB6E2AAD4C8D0029DCBA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C7A7DB6A2AAD4C8D0029DCBA /* Preview Assets.xcassets */; };
 		C7A7DB6F2AAD4C8D0029DCBA /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A7DB6C2AAD4C8D0029DCBA /* App.swift */; };
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				52867B9B2BEFA76F00441ACE /* RepositoryListFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,6 +97,7 @@
 			);
 			name = TCAWorkshop;
 			packageProductDependencies = (
+				52867B9A2BEFA76F00441ACE /* RepositoryListFeature */,
 			);
 			productName = TCAWorkshop;
 			productReference = C76268EC2AAD4420008D03E7 /* TCAWorkshop.app */;
@@ -211,7 +214,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GITHUB_PERSONAL_ACCESS_TOKEN = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -268,7 +273,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GITHUB_PERSONAL_ACCESS_TOKEN = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -375,6 +382,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		52867B9A2BEFA76F00441ACE /* RepositoryListFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RepositoryListFeature;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C76268E42AAD4420008D03E7 /* Project object */;
 }

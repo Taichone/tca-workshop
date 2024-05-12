@@ -1,4 +1,4 @@
-import Composable ComposableArchitecture
+import ComposableArchitecture
 import Entity
 import Foundation
 import SwiftUI
@@ -69,6 +69,18 @@ public struct RepositoryListView: View {
             self.store.send(.onAppear)
         }
     }
+}
+
+#Preview {
+    RepositoryListView(
+        // Store には init(initialState:reducer:withDependencies) という initializer がある
+        // これの initialState と reducer を最低限提供すれば initialize できる
+        store: .init(
+            initialState: RepositoryList.State()
+        ) {
+            RepositoryList()._printChanges() // ._printChanges() をつけると Reducer で起きた Action や State の変化を 出力できる
+        }
+    )
 }
 
 // TCA に用意されている Reducer protocol に準拠した構造体
@@ -147,5 +159,5 @@ public struct RepositoryList {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
-    }
+    }()
 }
