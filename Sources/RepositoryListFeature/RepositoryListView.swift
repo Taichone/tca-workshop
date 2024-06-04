@@ -30,6 +30,7 @@ public struct RepositoryList {
         case onAppear
         case searchRepositoriesResponse(Result<[Repository], Error>) // Action に値を渡したい場合は associated value を使う
         case repositoryRows(IdentifiedActionOf<RepositoryRow>)
+        case queryChangeDebounced // query が変わってから一定時間後のアクション
         case binding(BindingAction<State>)
 
         /*
@@ -39,6 +40,10 @@ public struct RepositoryList {
     }
 
     public init() {}
+
+    public enum CancelID {
+        case response
+    }
 
     // MARK: - @Reducer 準拠には body が必要
     // - 何らかの Action が与えられた時に State を現在の値から次の値へと変更する責務
@@ -52,33 +57,7 @@ public struct RepositoryList {
                 // 画面表示のタイミングで
                 state.isLoading = true // ローディング中 の状態にする
                 // 基本的に TCA では Reducer において Effect.run の中でのみ 非同期処理を実行できる
-                return .run { send in // Effect.run の closure には Send 型（ @MainActor 付き）が提供されている
-                    // await send(.someAction) のような形で Action を発火できる
-                    await send(
-                        .searchRepositoriesResponse(
-                            // GitHub API の search エンドポイントに対してリクエスト
-                            Result {
-                                let query = "composable"
-                                let url = URL(
-                                    string: "https://api.github.com/search/repositories?q=\(query)&sort=stars"
-                                )!
-                                var request = URLRequest(url: url)
-                                if let token = Bundle.main.infoDictionary?["GitHubPersonalAccessToken"] as? String {
-                                    request.setValue(
-                                        "Bearer \(token)",
-                                        forHTTPHeaderField: "Authorization"
-                                    )
-                                }
-                                let (data, _) = try await URLSession.shared.data(for: request)
-                                let repositories = try jsonDecoder.decode(
-                                    GithubSearchResult.self,
-                                    from: data
-                                ).items
-                                return repositories
-                            }
-                        )
-                    )
-                }
+                return self.searchRepositories(by: "composable") // まずこの検索結果にしておく
                 // API Request の結果を受け取るための Action の処理
             case let .searchRepositoriesResponse(result):
                 state.isLoading = false
@@ -99,6 +78,19 @@ public struct RepositoryList {
                 }
             case .repositoryRows:
                 return .none
+            case .binding(\.query):
+                return .run { send in
+                    await send(.queryChangeDebounced)
+                }
+                // Effect.debounce は内部的に Effect.cancellable というAPIを使用しており、同時に実行されると古いやつはキャンセルされるのでOK
+                .debounce(id: CancelID.response,
+                          for: .seconds(0.3),
+                          scheduler: DispatchQueue.main.eraseToAnyScheduler()
+                )
+            case .queryChangeDebounced:
+                guard !state.query.isEmpty else { return.none }
+                state.isLoading = true
+                return self.searchRepositories(by: state.query)
             case .binding:
                 return .none
             }
@@ -114,6 +106,34 @@ public struct RepositoryList {
          今までに定義してきた Row 用の State・Action の KeyPath を引数に指定しつつ、
          クロージャに対して RepositoryRow Reducer を提供することで利用できます。
          */
+    }
+
+    // Effect を返すメソッドを定義
+    func searchRepositories(by query: String) -> Effect<Action> {
+        .run { send in
+            await send(
+                .searchRepositoriesResponse(
+                    Result {
+                        let url = URL(
+                            string: "https://api.github.com/search/repositories?q=\(query)&sort=stars"
+                        )!
+                        var request = URLRequest(url: url)
+                        if let token = Bundle.main.infoDictionary?["GitHubPersonalAccessToken"] as? String {
+                            request.setValue(
+                                "Bearer \(token)",
+                                forHTTPHeaderField: "Authorization"
+                            )
+                        }
+                        let (data, _) = try await URLSession.shared.data(for: request)
+                        let repositories = try jsonDecoder.decode(
+                            GithubSearchResult.self,
+                            from: data
+                        ).items
+                        return repositories
+                    }
+                )
+            )
+        }
     }
 
     private let jsonDecoder: JSONDecoder = {
