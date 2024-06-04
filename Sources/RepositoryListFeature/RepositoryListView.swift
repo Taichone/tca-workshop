@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import Entity
 import Foundation
+import IdentifiedCollections
 import SwiftUI
 
 // View と Reducer は同じファイルにしておくとすぐに互いの実装を確認できて便利
@@ -15,7 +16,7 @@ public struct RepositoryList {
     // テストで State の変化を assertion 可能にするため、Equatable なものとして定義するのがおすすめ
     @ObservableState
     public struct State: Equatable {
-        var repositories: [Repository] = []
+        var repositoryRows: IdentifiedArrayOf<RepositoryRow.State> = []
         var isLoading: Bool = false
 
         public init() {}
@@ -27,6 +28,7 @@ public struct RepositoryList {
     public enum Action {
         case onAppear
         case searchRepositoriesResponse(Result<[Repository], Error>) // Action に値を渡したい場合は associated value を使う
+        case repositoryRows(IdentifiedActionOf<RepositoryRow>)
     }
 
     public init() {}
@@ -60,7 +62,7 @@ public struct RepositoryList {
                                     )
                                 }
                                 let (data, _) = try await URLSession.shared.data(for: request)
-                                let repositories = try self.jsonDecoder.decode(
+                                let repositories = try jsonDecoder.decode(
                                     GithubSearchResult.self,
                                     from: data
                                 ).items
@@ -69,21 +71,40 @@ public struct RepositoryList {
                         )
                     )
                 }
-            // API Request の結果を受け取るための Action の処理
+                // API Request の結果を受け取るための Action の処理
             case let .searchRepositoriesResponse(result):
                 state.isLoading = false
 
                 switch result {
                 case let .success(response):
-                    state.repositories = response
+                    // レスポンスから子 View の Reducer の配列を作る
+                    state.repositoryRows = .init(
+                        uniqueElements: response.map {
+                            .init(repository: $0)
+                        }
+                    )
                     return .none
                 case let .failure(error):
                     // TODO: Handling error
                     print("Error fetching repositories: \(error)")
                     return .none
                 }
+
+            case .repositoryRows:
+                return .none
             }
         }
+        .forEach(\.repositoryRows, action: \.repositoryRows) {
+            RepositoryRow()
+        }
+        /*
+         RepositoryList Reducer で RepositoryRow Reducer を動作させるために、2つを接続する
+         RepositoryList Reducer では複数の RepositoryRow Reducer を管理することとなるが
+         このように複数のドメインを一つ一つ Composition するための機能として、
+         Reducer.forEach という function が用意されている
+         今までに定義してきた Row 用の State・Action の KeyPath を引数に指定しつつ、
+         クロージャに対して RepositoryRow Reducer を提供することで利用できます。
+         */
     }
 
     private let jsonDecoder: JSONDecoder = {
@@ -98,11 +119,11 @@ public struct RepositoryListView: View {
     // 機能におけるランタイムとしての責務
     // - Reducer の実装に従って State を更新するために Action を処理したり、Effect を実行してくれたりする
     let store: StoreOf<RepositoryList> // StoreOf<X> は Store<X.State, X.Action> の typealias
-    
+
     public init(store: StoreOf<RepositoryList>) {
         self.store = store
     }
-    
+
     public var body: some View {
         Group {
             // store.someState の形で State を取得できる
@@ -110,43 +131,16 @@ public struct RepositoryListView: View {
                 ProgressView()
             } else { // isLoading が false になった == API Response が帰ってきた場合の View を実装
                 List {
-                  ForEach(store.repositories, id: \.id) { repository in
-                    Button {
-                        // TODO: 後ほど実装
-                    } label: {
-                      VStack(alignment: .leading, spacing: 8) {
-                        Text(repository.fullName)
-                          .font(.title2.bold())
-                        Text(repository.description ?? "")
-                          .font(.body)
-                          .lineLimit(2)
-                        HStack(alignment: .center, spacing: 32) {
-                          Label(
-                            title: {
-                              Text("\(repository.stargazersCount)")
-                                .font(.callout)
-                            },
-                            icon: {
-                              Image(systemName: "star.fill")
-                                .foregroundStyle(.yellow)
-                            }
-                          )
-                          Label(
-                            title: {
-                              Text(repository.language ?? "")
-                                .font(.callout)
-                            },
-                            icon: {
-                              Image(systemName: "text.word.spacing")
-                                .foregroundStyle(.gray)
-                            }
-                          )
-                        }
-                      }
-                      .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                  }
+                    Rectangle()
+                        .foregroundStyle(.red)
+                    // 子 View は子 Reducer を用いてこのように作れる？
+                    ForEach(
+                        self.store.scope(
+                            state: \.repositoryRows,
+                            action: \.repositoryRows
+                        ),
+                        content: RepositoryRowView.init(store:)
+                    )
                 }
             }
         }

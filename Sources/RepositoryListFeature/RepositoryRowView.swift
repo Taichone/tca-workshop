@@ -17,7 +17,7 @@ public struct RepositoryRow {
     }
 
     public enum Action {
-        case rowTapped // タップされたことを示すイベント
+        case rowTapped
     }
 
     public var body: some ReducerOf<Self> {
@@ -39,7 +39,7 @@ struct RepositoryRowView: View {
 
     var body: some View {
         Button {
-            store.send(.rowTapped) // タップされた Action を送る
+            store.send(.rowTapped)
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Text(store.repository.fullName)
