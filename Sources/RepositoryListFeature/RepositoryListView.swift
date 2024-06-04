@@ -127,35 +127,45 @@ public struct RepositoryListView: View {
     // Reducer と View を繋ぐ Store API
     // 機能におけるランタイムとしての責務
     // - Reducer の実装に従って State を更新するために Action を処理したり、Effect を実行してくれたりする
-    let store: StoreOf<RepositoryList> // StoreOf<X> は Store<X.State, X.Action> の typealias
+    // @Bindable は iOS 17 以降対応の SwiftUI の API
+    @Bindable var store: StoreOf<RepositoryList>
 
     public init(store: StoreOf<RepositoryList>) {
         self.store = store
     }
 
     public var body: some View {
-        Group {
-            // store.someState の形で State を取得できる
-            if self.store.isLoading {
-                ProgressView()
-            } else { // isLoading が false になった == API Response が帰ってきた場合の View を実装
-                List {
-                    Rectangle()
-                        .foregroundStyle(.red)
-                    // 子 View は子 Reducer を用いてこのように作れる？
-                    ForEach(
-                        self.store.scope(
-                            state: \.repositoryRows,
-                            action: \.repositoryRows
-                        ),
-                        content: RepositoryRowView.init(store:)
-                    )
+        NavigationStack {
+            Group {
+                // store.someState の形で State を取得できる
+                if self.store.isLoading {
+                    ProgressView()
+                } else { // isLoading が false になった == API Response が帰ってきた場合の View を実装
+                    List {
+                        Rectangle()
+                            .foregroundStyle(.red)
+                        // 子 View は子 Reducer を用いてこのように作れる？
+                        ForEach(
+                            self.store.scope(
+                                state: \.repositoryRows,
+                                action: \.repositoryRows
+                            ),
+                            content: RepositoryRowView.init(store:)
+                        )
+                    }
                 }
             }
-        }
-        .onAppear {
-            // store.send(.someAction) という形で Action を送ることができる
-            self.store.send(.onAppear)
+            .onAppear {
+                // store.send(.someAction) という形で Action を送ることができる
+                self.store.send(.onAppear)
+            }
+            .navigationTitle("Repositories")
+            // SwiftUI には 検索機能を実現するための searchable が用意されている
+            .searchable(
+                text: self.$store.query,
+                placement: .navigationBarDrawer,
+                prompt: "Input query"
+            )
         }
     }
 }
