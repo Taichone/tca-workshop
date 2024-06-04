@@ -18,6 +18,7 @@ public struct RepositoryList {
     public struct State: Equatable {
         var repositoryRows: IdentifiedArrayOf<RepositoryRow.State> = []
         var isLoading: Bool = false
+        var query: String = ""
 
         public init() {}
     }
@@ -25,10 +26,16 @@ public struct RepositoryList {
     // MARK: - @Reducer 準拠には Action が必要
     // UI操作からのイベント・SwiftUI ライフサイクルによるイベント・API Request の結果を受け取った際のイベントなど、様々なイベントを定義
     // enum で定義することが一般的
-    public enum Action {
+    public enum Action: BindableAction {
         case onAppear
         case searchRepositoriesResponse(Result<[Repository], Error>) // Action に値を渡したい場合は associated value を使う
         case repositoryRows(IdentifiedActionOf<RepositoryRow>)
+        case binding(BindingAction<State>)
+
+        /*
+         Reducer で Binding を扱えるようにするには、BindableAction と BindingAction という API を利用する
+         BindableAction は Action に準拠させるための protocol として機能し、BindableAction protocol に準拠するためには binding(BindingAction<State>) という case を追加する必要がある
+         */
     }
 
     public init() {}
@@ -37,6 +44,7 @@ public struct RepositoryList {
     // - 何らかの Action が与えられた時に State を現在の値から次の値へと変更する責務
     // - アプリが外の世界で実行すべき処理である Effect を return する責務（API 通信や UserDefaults へのアクセスなどが該当）
     public var body: some ReducerOf<Self> { // ReducerOf<Self> は Reducer<Self.State, Self.Action> の typealias
+        BindingReducer() // Binding の処理を行う各なのでこれを body に組み込む必要がある
         // TCA が用意している Reduce API を用いれば上記の責務を表現できる
         Reduce { state, action in
             switch action {
@@ -89,8 +97,9 @@ public struct RepositoryList {
                     print("Error fetching repositories: \(error)")
                     return .none
                 }
-
             case .repositoryRows:
+                return .none
+            case .binding:
                 return .none
             }
         }
